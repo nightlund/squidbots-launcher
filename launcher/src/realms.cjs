@@ -86,10 +86,15 @@ function mode(key) {
 
 const confValue = (text, key) => new RegExp(`^\\s*${key.replace(/\./g, '\\.')}\\s*=\\s*"?([^"\\r\\n#]*)"?`, 'm').exec(text || '')?.[1]?.trim();
 
-// Sets every line of the key, or adds it at the end.
+// Sets every line of the key, or adds it at the end. Keeps the file's own line endings:
+// [ \t] instead of \s so a match never crosses a line break (with the m flag, ^ also matches
+// right after a lone \r in a CRLF file, and \s* would swallow the \n and glue the line onto the one above).
 function setKey(text, key, value) {
-  const pattern = new RegExp(`^\\s*${key.replace(/\./g, '\\.')}\\s*=.*$`, 'gm');
-  return pattern.test(text) ? text.replace(pattern, `${key} = ${value}`) : `${text.replace(/\s*$/, '')}\n${key} = ${value}\n`;
+  const line = `${key} = ${value}`;
+  const pattern = new RegExp(`^[ \\t]*${key.replace(/\./g, '\\.')}[ \\t]*=[^\\r\\n]*`, 'gm');
+  if (pattern.test(text)) return text.replace(pattern, () => line);
+  const eol = /\r\n/.test(text) ? '\r\n' : '\n';
+  return `${text.replace(/\s*$/, '')}${eol}${line}${eol}`;
 }
 
 async function readJson(file) { try { return JSON.parse((await fsp.readFile(file, 'utf8')).replace(/^﻿/, '')); } catch { return null; } }

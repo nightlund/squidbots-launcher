@@ -78,9 +78,13 @@ async function multiraceBlockers(root) {
   return out;
 }
 
+// Same rule as realms.setKey: [ \t] so a match stays on its own line in CRLF files
+// (with \s*, an empty "Key =" line would swallow the line below it).
 async function setKey(text, key, value) {
-  const pattern = new RegExp(`^(\\s*${key.replace(/\./g, '\\.')}\\s*=\\s*).*$`, 'm');
-  return pattern.test(text) ? text.replace(pattern, `$1${value}`) : `${text.replace(/\s*$/, '')}\n${key} = ${value}\n`;
+  const pattern = new RegExp(`^([ \\t]*${key.replace(/\./g, '\\.')}[ \\t]*=[ \\t]*)[^\\r\\n]*`, 'm');
+  if (pattern.test(text)) return text.replace(pattern, (_, head) => `${head}${value}`);
+  const eol = /\r\n/.test(text) ? '\r\n' : '\n';
+  return `${text.replace(/\s*$/, '')}${eol}${key} = ${value}${eol}`;
 }
 
 // Writes Enable / BotsEnable. The caller purges the random bots afterwards (both ways).
@@ -266,4 +270,4 @@ function runScript(root, command, apply) {
   }));
 }
 
-module.exports = { dungeonStatus, setDungeon, setDungeonDifficulties, ahbotStatus, setAhbot, ahbotSettings, setAhbotSettings, ahbotInstantKnown, manastormStatus, setManastorm, rotationStatus, setRotation, keepRotationOff, hasScript, runScript, status, setMultirace, setClientPatch, clientPatch, coreSupports, multiraceBlockers, RACES_CONF, RACES_DBC_COUNT };
+module.exports = { dungeonStatus, setDungeon, setDungeonDifficulties, ahbotStatus, setAhbot, ahbotSettings, setAhbotSettings, ahbotInstantKnown, manastormStatus, setManastorm, rotationStatus, setRotation, keepRotationOff, hasScript, runScript, status, setMultirace, setClientPatch, clientPatch, coreSupports, multiraceBlockers, RACES_CONF, RACES_DBC_COUNT, setKey };

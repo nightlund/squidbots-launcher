@@ -264,3 +264,24 @@ test('the bot tables shipped by CoA Bots are the ones a realm keeps in step with
   fs.writeFileSync(path.join(dir, 'b.sql'), "DELETE FROM playerbots_custom_strategy WHERE 1;\nINSERT INTO `playerbots_coa_wcr_builds` VALUES (1);\nUPDATE characters SET x=1;");
   assert.deepEqual(realms.shippedTables(root).sort(), ['playerbots_coa_wcr_builds', 'playerbots_coa_wcr_enchants', 'playerbots_custom_strategy']);
 });
+
+test('setKey keeps a CRLF conf intact: the key stays on its own line under its comment', () => {
+  const crlf = '# Playerbots database\r\nPlayerbotsDatabaseInfo = "old"\r\n\r\n# Bots\r\nAiPlayerbot.MaxRandomBots = 500\r\n';
+  const out = realms.setKey(crlf, 'PlayerbotsDatabaseInfo', '"127.0.0.1;3306;a;b;acore_playerbots"');
+  assert.strictEqual(out, '# Playerbots database\r\nPlayerbotsDatabaseInfo = "127.0.0.1;3306;a;b;acore_playerbots"\r\n\r\n# Bots\r\nAiPlayerbot.MaxRandomBots = 500\r\n');
+  assert.ok(!/\r(?!\n)/.test(out), 'no lone \\r left behind');
+});
+
+test('setKey on an empty CRLF value does not swallow the next line', () => {
+  const out = realms.setKey('A =\r\nB = 2\r\n', 'A', '1');
+  assert.strictEqual(out, 'A = 1\r\nB = 2\r\n');
+});
+
+test('setKey adds a missing key with the file\'s own line ending', () => {
+  assert.strictEqual(realms.setKey('A = 1\r\n', 'B', '2'), 'A = 1\r\nB = 2\r\n');
+  assert.strictEqual(realms.setKey('A = 1\n', 'B', '2'), 'A = 1\nB = 2\n');
+});
+
+test('setKey still sets every line of the key and takes a value with $ as is', () => {
+  assert.strictEqual(realms.setKey('  X.Y = 1\nZ = 0\nX.Y=3\n', 'X.Y', '$1'), 'X.Y = $1\nZ = 0\nX.Y = $1\n');
+});

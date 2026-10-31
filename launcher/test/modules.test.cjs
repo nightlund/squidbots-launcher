@@ -68,3 +68,10 @@ test('client patch: detected, switched off to .disabled and back', async () => {
   assert.equal((await modules.setClientPatch(client, true)).state, 'yes');
   assert.equal(modules.clientPatch('').state, 'unknown');
 });
+
+test('modules setKey keeps CRLF lines apart and keeps the spacing of the line', async () => {
+  const crlf = '# Races\r\nCoACustomRaces.Enable =\r\nCoACustomRaces.BotsEnable = 0\r\n';
+  assert.equal(await modules.setKey(crlf, 'CoACustomRaces.Enable', '1'), '# Races\r\nCoACustomRaces.Enable =1\r\nCoACustomRaces.BotsEnable = 0\r\n');
+  assert.equal(await modules.setKey('# c\r\n  K  =  0\r\n', 'K', '1'), '# c\r\n  K  =  1\r\n');
+  assert.equal(await modules.setKey('A = 1\r\n', 'K', '1'), 'A = 1\r\nK = 1\r\n');
+});
